@@ -29,7 +29,7 @@ import java.util.Optional;
         allowCredentials = "true",
         allowedHeaders = {"Content-Type"},
         methods = {RequestMethod.POST, RequestMethod.GET},
-        originPatterns = {"notice/**"}
+        originPatterns = {"notice/v1/**"}
 )
 @Tag(name = "공지사항 서비스", description = "공지사항 구현을 위한 API")
 @Slf4j
