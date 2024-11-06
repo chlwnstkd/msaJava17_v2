@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @RefreshScope
 @FeignClient(name = "ITokenAPIService", url = "${api.gateway}")
 public interface ITokenAPIService {
-
-    @PostMapping(value = "/user/getTokenInfo")
+    @PostMapping(value = "/user/v1/getTokenInfo")
     TokenDTO getTokenInfo(@RequestHeader(HttpHeaders.AUTHORIZATION) String bearerToken);
 }

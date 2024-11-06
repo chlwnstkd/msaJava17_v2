@@ -4,11 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import kopo.poly.controller.response.CommonResponse;
 import kopo.poly.dto.MsgDTO;
 import kopo.poly.dto.NoticeDTO;
 import kopo.poly.dto.TokenDTO;
+import kopo.poly.repository.NoticeRepository;
+import kopo.poly.repository.entity.NoticeEntity;
 import kopo.poly.service.INoticeService;
 import kopo.poly.service.ITokenAPIService;
 import kopo.poly.util.CmmUtil;
@@ -41,12 +43,15 @@ public class NoticeController {
 
     private final ITokenAPIService tokenAPIService;
 
+    private final NoticeRepository noticeRepository;
+
     private final String HEADER_PREFIX = "Bearer "; // Bearer 토큰 사용을 위한 선언 값
 
     @Operation(summary = "공지사항 리스트 API", description = "공지사항 리스트 정보 제공하는 API",
-            responses = {@ApiResponse(responseCode = "200", description = "OK"), @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
+            responses = {@ApiResponse(responseCode = "200", description = "OK"),
+                    @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
     @PostMapping(value = "noticeList")
-    public ResponseEntity<CommonResponse> noticeList() {
+    public List<NoticeDTO> noticeList() {
 
         // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".noticeList Start!");
@@ -58,8 +63,7 @@ public class NoticeController {
         // 로그 찍기(추후 찍은 로그를 통해 이 함수 호출이 끝났는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".noticeList End!");
 
-        return ResponseEntity.ok(
-                CommonResponse.of(HttpStatus.OK, HttpStatus.OK.series().name(), rList));
+        return rList;
     }
 
     @Operation(summary = "공지사항 상세보기 결과제공 API", description = "공지사항 상세보기 결과 및 조회수 증가 API",
@@ -68,43 +72,34 @@ public class NoticeController {
             responses = {@ApiResponse(responseCode = "200", description = "OK"),
                     @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
     @PostMapping(value = "noticeInfo")
-    public ResponseEntity<CommonResponse> noticeInfo(@Valid @RequestBody NoticeDTO pDTO, BindingResult bindingResult) throws Exception {
+    public NoticeDTO noticeInfo(HttpServletRequest request) throws Exception {
 
         log.info(this.getClass().getName() + ".noticeInfo Start!");
 
-        if (bindingResult.hasErrors()) { // Spring Validation 맞춰 잘 바인딩되었는지 체크
-            return CommonResponse.getErrors(bindingResult); // 유효성 검증 결과에 따른 에러 메시지 전달
-
-        }
-
-        boolean readCnt = pDTO.readCntYn().equals("Y"); // 공지사항 증가여부를 boolean 값으로 변경
+        Long noticeSeq = Long.valueOf(request.getParameter("noticeSeq"));
 
         // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
-        log.info("pDTO : " + pDTO);
+        log.info("noticeSeq : " + noticeSeq);
+
+        boolean type = true;    //공지사항 조회수 표시
 
         // Java 8부터 제공되는 Optional 활용하여 NPE(Null Pointer Exception) 처리
-        NoticeDTO rDTO = Optional.ofNullable(noticeService.getNoticeInfo(pDTO, readCnt))
+        NoticeDTO rDTO = Optional.ofNullable(noticeService.getNoticeInfo(noticeSeq, type))
                 .orElseGet(() -> NoticeDTO.builder().build());
 
         log.info(this.getClass().getName() + ".noticeInfo End!");
 
-        return ResponseEntity.ok(
-                CommonResponse.of(HttpStatus.OK, HttpStatus.OK.series().name(), rDTO));
+        return rDTO;
     }
 
     @Operation(summary = "공지사항 등록 API", description = "공지사항 등록 및 등록결과를 제공하는 API",
             responses = {@ApiResponse(responseCode = "200", description = "OK"),
                     @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
     @PostMapping(value = "noticeInsert")
-    public ResponseEntity<CommonResponse> noticeInsert(@RequestBody NoticeDTO pDTO, BindingResult bindingResult,
-                                                       @CookieValue(value = "${jwt.token.access.name}") String token) {
+    public MsgDTO noticeInsert(HttpServletRequest request,
+                               @CookieValue(value = "${jwt.token.access.name}") String token) {
 
         log.info(this.getClass().getName() + ".noticeInsert Start!");
-
-        if (bindingResult.hasErrors()) { // Spring Validation 맞춰 잘 바인딩되었는지 체크
-            return CommonResponse.getErrors(bindingResult); // 유효성 검증 결과에 따른 에러 메시지 전달
-
-        }
 
         String msg = ""; // 메시지 내용
         int res = 0; // 성공 여부
@@ -117,18 +112,29 @@ public class NoticeController {
 
             //JWT Access 토큰으로부터 회원아이디 가져오기
             String userId = CmmUtil.nvl(tDTO.userId());
+            String title = CmmUtil.nvl(request.getParameter("title"));
+            String noticeYn = CmmUtil.nvl(request.getParameter("noticeYn"));
+            String contents = CmmUtil.nvl(request.getParameter("contents"));
 
             // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
             log.info("userId : " + userId);
-            log.info("pDTO : " + pDTO);
+            log.info("title : " + title);
+            log.info("noticeYn : " + noticeYn);
+            log.info("contents : " + contents);
+
 
             // 데이터 저장하기 위해 DTO에 저장하기
-            NoticeDTO nDTO = NoticeDTO.addUserId(pDTO, userId);
+            NoticeDTO pDTO = NoticeDTO.builder()
+                    .userId(userId)
+                    .title(title)
+                    .noticeYn(noticeYn)
+                    .contents(contents)
+                    .build();
 
-            log.info("nDTO : " + nDTO);
+            log.info("pDTO : " + pDTO);
 
             // 게시글 등록하기위한 비즈니스 로직을 호출
-            noticeService.insertNoticeInfo(nDTO);
+            noticeService.insertNoticeInfo(pDTO);
 
             // 저장이 완료되면 사용자에게 보여줄 메시지
             msg = "등록되었습니다.";
@@ -148,23 +154,17 @@ public class NoticeController {
             log.info(this.getClass().getName() + ".noticeInsert End!");
         }
 
-        return ResponseEntity.ok(
-                CommonResponse.of(HttpStatus.OK, HttpStatus.OK.series().name(), dto));
+        return dto;
     }
 
     @Operation(summary = "공지사항 수정 API", description = "공지사항 수정 및 수정결과를 제공하는 API",
             responses = {@ApiResponse(responseCode = "200", description = "OK"),
                     @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
     @PostMapping(value = "noticeUpdate")
-    public ResponseEntity<CommonResponse> noticeUpdate(@Valid @RequestBody NoticeDTO pDTO, BindingResult bindingResult,
-                                                       @CookieValue(value = "${jwt.token.access.name}") String token) {
+    public MsgDTO noticeUpdate(HttpServletRequest request,
+                               @CookieValue(value = "${jwt.token.access.name}") String token) {
 
         log.info(this.getClass().getName() + ".noticeUpdate Start!");
-
-        if (bindingResult.hasErrors()) { // Spring Validation 맞춰 잘 바인딩되었는지 체크
-            return CommonResponse.getErrors(bindingResult); // 유효성 검증 결과에 따른 에러 메시지 전달
-
-        }
 
         String msg = ""; // 메시지 내용
         int res = 0; // 성공 여부
@@ -177,13 +177,27 @@ public class NoticeController {
 
             //JWT Access 토큰으로부터 회원아이디 가져오기
             String userId = CmmUtil.nvl(tDTO.userId());
+            String title = CmmUtil.nvl(request.getParameter("title"));
+            String noticeYn = CmmUtil.nvl(request.getParameter("noticeYn"));
+            String contents = CmmUtil.nvl(request.getParameter("contents"));
+            Long nSeq = Long.valueOf((CmmUtil.nvl(request.getParameter("nSeq"))));
+
 
             // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
             log.info("userId : " + userId);
-            log.info("pDTO : " + pDTO);
+            log.info("title : " + title);
+            log.info("noticeYn : " + noticeYn);
+            log.info("contents : " + contents);
+            log.info("nSeq : " + nSeq);
 
             // 데이터 저장하기 위해 DTO에 저장하기
-            NoticeDTO nDTO = NoticeDTO.addUserId(pDTO, userId);
+            NoticeDTO nDTO = NoticeDTO.builder()
+                    .userId(userId)
+                    .title(title)
+                    .noticeYn(noticeYn)
+                    .contents(contents)
+                    .noticeSeq(nSeq)
+                    .build();
 
             log.info("nDTO : " + nDTO);
 
@@ -207,22 +221,18 @@ public class NoticeController {
 
         }
 
-        return ResponseEntity.ok(
-                CommonResponse.of(HttpStatus.OK, HttpStatus.OK.series().name(), dto));
+        return dto;
     }
 
     @Operation(summary = "공지사항 삭제 API", description = "공지사항 삭제 및 삭제결과를 제공하는 API",
             responses = {@ApiResponse(responseCode = "200", description = "OK"),
                     @ApiResponse(responseCode = "404", description = "Page Not Found!"),})
     @PostMapping(value = "noticeDelete")
-    public ResponseEntity<CommonResponse> noticeDelete(@Valid @RequestBody NoticeDTO pDTO, BindingResult bindingResult) {
+    public MsgDTO noticeDelete(HttpServletRequest request) {
 
         log.info(this.getClass().getName() + ".noticeDelete Start!");
 
-        if (bindingResult.hasErrors()) { // Spring Validation 맞춰 잘 바인딩되었는지 체크
-            return CommonResponse.getErrors(bindingResult); // 유효성 검증 결과에 따른 에러 메시지 전달
-
-        }
+        Long noticeSeq = Long.valueOf(request.getParameter("noticeSeq"));
 
         String msg = ""; // 메시지 내용
         int res = 0; // 성공 여부
@@ -230,10 +240,10 @@ public class NoticeController {
 
         try {
             // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
-            log.info("pDTO : " + pDTO);
+            log.info("noticeSeq : " + noticeSeq);
 
             // 게시글 삭제하기 DB
-            noticeService.deleteNoticeInfo(pDTO);
+            noticeService.deleteNoticeInfo(noticeSeq);
 
             msg = "삭제되었습니다.";
             res = 1;
@@ -251,8 +261,7 @@ public class NoticeController {
 
         }
 
-        return ResponseEntity.ok(
-                CommonResponse.of(HttpStatus.OK, HttpStatus.OK.series().name(), dto));
+        return dto;
     }
 
 }

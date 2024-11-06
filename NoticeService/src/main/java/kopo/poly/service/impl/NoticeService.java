@@ -1,5 +1,7 @@
 package kopo.poly.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import kopo.poly.dto.NoticeDTO;
 import kopo.poly.repository.NoticeRepository;
@@ -28,11 +30,10 @@ public class NoticeService implements INoticeService {
 
         log.info(this.getClass().getName() + ".getNoticeList Start!");
 
-        // 공지사항 전체 리스트 조회하기
-        List<NoticeEntity> rList = noticeRepository.getNoticeList();
+        List<NoticeEntity> rList = noticeRepository.findAllByOrderByNoticeSeqDesc();
 
-        // 엔티티의 값들을 DTO에 맞게 넣어주기
-        List<NoticeDTO> nList = NoticeDTO.from(rList);
+        List<NoticeDTO> nList = new ObjectMapper().convertValue(rList, new TypeReference<List<NoticeDTO>>() {
+        });
 
         log.info(this.getClass().getName() + ".getNoticeList End!");
 
@@ -41,23 +42,22 @@ public class NoticeService implements INoticeService {
 
     @Transactional
     @Override
-    public NoticeDTO getNoticeInfo(NoticeDTO pDTO, boolean type) {
+    public NoticeDTO getNoticeInfo(Long noticeSeq, boolean type) {
 
         log.info(this.getClass().getName() + ".getNoticeInfo Start!");
 
         if (type) {
             // 조회수 증가하기
-            int res = noticeRepository.updateReadCnt(pDTO.noticeSeq());
+            int res = noticeRepository.updateReadCnt(noticeSeq);
 
             // 조회수 증가 성공여부 체크
             log.info("res : " + res);
         }
 
         // 공지사항 상세내역 가져오기
-        NoticeEntity rEntity = noticeRepository.findByNoticeSeq(pDTO.noticeSeq());
+        NoticeEntity rEntity = noticeRepository.findByNoticeSeq(noticeSeq);
 
-        // 엔티티의 값들을 DTO에 맞게 넣어주기
-        NoticeDTO rDTO = NoticeDTO.from(rEntity);
+        NoticeDTO rDTO = new ObjectMapper().convertValue(rEntity, NoticeDTO.class);
 
         log.info(this.getClass().getName() + ".getNoticeInfo End!");
 
@@ -100,17 +100,14 @@ public class NoticeService implements INoticeService {
     }
 
     @Override
-    public void deleteNoticeInfo(NoticeDTO pDTO) {
+    public void deleteNoticeInfo(Long noticeSeq) {
 
         log.info(this.getClass().getName() + ".deleteNoticeInfo Start!");
-
-        Long noticeSeq = pDTO.noticeSeq();
 
         log.info("noticeSeq : " + noticeSeq);
 
         // 데이터 수정하기
         noticeRepository.deleteById(noticeSeq);
-
 
         log.info(this.getClass().getName() + ".deleteNoticeInfo End!");
     }

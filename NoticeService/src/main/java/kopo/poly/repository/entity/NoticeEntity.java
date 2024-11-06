@@ -54,9 +54,5 @@ public class NoticeEntity {
     @Column(name = "chg_dt")
     private String chgDt;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    private UserInfoEntity userInfo;
-
 }
 
