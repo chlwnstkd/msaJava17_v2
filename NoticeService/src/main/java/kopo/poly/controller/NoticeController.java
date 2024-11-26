@@ -25,11 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@CrossOrigin(origins = {"http://localhost:13000", "http://localhost:14000"},
+@CrossOrigin(origins = {"http://10.96.1.60:14000", "http://10.96.1.20:12000" +
+        "http://localhost:33333"},
         allowCredentials = "true",
-        allowedHeaders = {"Content-Type"},
-        methods = {RequestMethod.POST, RequestMethod.GET},
-        originPatterns = {"notice/v1/**"}
+        allowedHeaders = {"Content-Type", "Authorization"},
+        methods = {RequestMethod.POST, RequestMethod.GET, RequestMethod.OPTIONS},
+        originPatterns = {"notice/**"}
 )
 @Tag(name = "공지사항 서비스", description = "공지사항 구현을 위한 API")
 @Slf4j
@@ -42,8 +43,6 @@ public class NoticeController {
     private final INoticeService noticeService;
 
     private final ITokenAPIService tokenAPIService;
-
-    private final NoticeRepository noticeRepository;
 
     private final String HEADER_PREFIX = "Bearer "; // Bearer 토큰 사용을 위한 선언 값
 
@@ -76,15 +75,16 @@ public class NoticeController {
 
         log.info(this.getClass().getName() + ".noticeInfo Start!");
 
-        Long noticeSeq = Long.valueOf(request.getParameter("noticeSeq"));
+        Long nSeq = Long.valueOf(request.getParameter("nSeq"));
 
         // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
-        log.info("noticeSeq : " + noticeSeq);
+        log.info("nSeq : " + nSeq);
 
+        // 이곳에 나의 흔적을 남긴다,,,
         boolean type = true;    //공지사항 조회수 표시
 
         // Java 8부터 제공되는 Optional 활용하여 NPE(Null Pointer Exception) 처리
-        NoticeDTO rDTO = Optional.ofNullable(noticeService.getNoticeInfo(noticeSeq, type))
+        NoticeDTO rDTO = Optional.ofNullable(noticeService.getNoticeInfo(nSeq, type))
                 .orElseGet(() -> NoticeDTO.builder().build());
 
         log.info(this.getClass().getName() + ".noticeInfo End!");
@@ -180,7 +180,7 @@ public class NoticeController {
             String title = CmmUtil.nvl(request.getParameter("title"));
             String noticeYn = CmmUtil.nvl(request.getParameter("noticeYn"));
             String contents = CmmUtil.nvl(request.getParameter("contents"));
-            Long nSeq = Long.valueOf((CmmUtil.nvl(request.getParameter("nSeq"))));
+            String nSeq = CmmUtil.nvl(request.getParameter("nSeq"));
 
 
             // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
@@ -196,7 +196,7 @@ public class NoticeController {
                     .title(title)
                     .noticeYn(noticeYn)
                     .contents(contents)
-                    .noticeSeq(nSeq)
+                    .noticeSeq(Long.parseLong(nSeq))
                     .build();
 
             log.info("nDTO : " + nDTO);
@@ -232,7 +232,7 @@ public class NoticeController {
 
         log.info(this.getClass().getName() + ".noticeDelete Start!");
 
-        Long noticeSeq = Long.valueOf(request.getParameter("noticeSeq"));
+        Long nSeq = Long.valueOf(request.getParameter("nSeq"));
 
         String msg = ""; // 메시지 내용
         int res = 0; // 성공 여부
@@ -240,10 +240,10 @@ public class NoticeController {
 
         try {
             // 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
-            log.info("noticeSeq : " + noticeSeq);
+            log.info("nSeq : " + nSeq);
 
             // 게시글 삭제하기 DB
-            noticeService.deleteNoticeInfo(noticeSeq);
+            noticeService.deleteNoticeInfo(nSeq);
 
             msg = "삭제되었습니다.";
             res = 1;

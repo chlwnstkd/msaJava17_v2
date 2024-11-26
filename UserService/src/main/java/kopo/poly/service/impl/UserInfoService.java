@@ -42,6 +42,8 @@ public class UserInfoService implements IUserInfoService {
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
         log.info(this.getClass().getName() + ".loadUserByUsername Start!");
 
+        log.info("userId : " + userId);
+
         // 로그인 요청한 사용자 아이디를 검색함
         // SELECT * FROM USER_INFO WHERE USER_ID = 'hglee67'
         UserInfoEntity rEntity = userInfoRepository.findByUserId(userId)

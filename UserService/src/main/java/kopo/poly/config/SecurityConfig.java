@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .formLogin(login -> login // 로그인 페이지 설정
                         .loginPage("/ss/login")
                         .loginProcessingUrl("/login/v1/loginProc")
-                        .usernameParameter("user_id") // 로그인 ID로 사용할 html의 input객체의 name 값
+                        .usernameParameter("userId") // 로그인 ID로 사용할 html의 input객체의 name 값
                         .passwordParameter("password") // 로그인 패스워드로 사용할 html의 input객체의 name 값
 
                         // 로그인 처리

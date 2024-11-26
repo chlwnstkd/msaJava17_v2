@@ -21,9 +21,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 
-@CrossOrigin(origins = {"http://localhost:12000",
-        "http://localhost:13000", "http://localhost:14000"},
-        allowedHeaders = {"POST, GET", "FEIGN"},
+@CrossOrigin(origins = {"http://10.96.1.60:14000", "http://10.96.1.20:12000" +
+        "http://10.96.1.30:12000" ,"http://localhost:33333"},
+        allowedHeaders = {"Content-Type", "Authorization"},
+        methods = {RequestMethod.POST, RequestMethod.GET},
         allowCredentials = "true")
 @Tag(name = "로그인된 사용자들이 접근하는 API", description = "로그인된 사용자들이 접근하는 API 설명입니다.")
 @Slf4j
@@ -48,7 +49,7 @@ public class UserInfoController {
             }
     )
     @PostMapping(value = "getTokenInfo")
-    private TokenDTO getTokenInfo(HttpServletRequest request) {
+    public TokenDTO getTokenInfo(HttpServletRequest request) {
 
         // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".getTokenInfo Start!");

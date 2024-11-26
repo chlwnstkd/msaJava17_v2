@@ -16,18 +16,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
-@CrossOrigin(origins = {"http://localhost:13000", "http://localhost:14000"},
-        allowedHeaders = {"POST, GET"},
+@CrossOrigin(origins = {"http://10.96.1.60:14000", "http://10.96.1.20:12000" +
+        "http://localhost:33333"},
+        allowedHeaders = {"Content-Type", "Authorization"},
+        methods = {RequestMethod.POST, RequestMethod.GET},
         allowCredentials = "true")
 @Tag(name = "회원가입을 위한 API", description = "회원가입을 위한 API 설명입니다.")
 @Slf4j
-@RequestMapping(value = "/reg")
+@RequestMapping(value = "/reg/v1")
 @RequiredArgsConstructor
 @RestController
 public class UserRegController {
